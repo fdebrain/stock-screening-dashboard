@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "stock_screening_dashboard"
+version = "0.1.0"
+description = "Explore ETFs and stocks using Yahoo Finance API and Streamlit."
+authors = ["fdebrain <12777340+fdebrain@users.noreply.github.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9.8"
+pandas = "^1.4.4"
+numpy = "^1.23.2"
+streamlit = "^1.12.2"
+streamlit-elements = "^0.1.0"
+yfinance = "^0.1.74"
+html5lib = "^1.1"
+bs4 = "^0.0.1"
+pre-commit = "^2.20.0"
+
+[tool.poetry.dev-dependencies]
+black = "^22.6.0"
+flake8 = "^5.0.4"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 90
+extend-ignore = "E203"
+
+[tool.isort]
+profile = "black"
+line_length = 90
