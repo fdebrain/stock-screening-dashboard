@@ -2,6 +2,8 @@
 
 Explore ETFs and stocks using Yahoo Finance API and Streamlit.
 
+
+
 ## Requirements
 
 Python 3.8
