@@ -24,7 +24,7 @@ Poetry
 - [x] Dividends visualization (bar plot, average yearly dividends & increase, distribution frequency, dataframe)
 - [x] Top 10 holdings (donut plot, aggregated share)
 - [ ] News
-- [ ] Additional information (total nbr of holdings, top performing holdings, etc...)
+- [ ] Additional information (total nbr of holdings, top performing holdings, correlation with S&P500, etc...)
 - [ ] Extending app to stocks (currently only ETFs)
-- [ ] Comparing two ETFs/stocks
+- [ ] Comparing two ETFs/stocks (correlation, returns, etc...)
 - [ ] More to come...
