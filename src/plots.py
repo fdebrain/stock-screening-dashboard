@@ -107,7 +107,53 @@ def plot_pie(df, col_cat: str, col_val: str):
 
 
 def plot_line(df, col_x, col_y):
-    st.line_chart(data=df, x=col_x, y=col_y)
+    color = st.color_picker("Pick a color", value="#3664E0", key="line_color")
+    st.vega_lite_chart(
+        df,
+        {
+            "width": 700,
+            "config": {"view": {"stroke": None}},
+            "mark": {"type": "line", "tooltip": True},
+            "encoding": {
+                "x": {"field": col_x, "type": "temporal"},
+                "y": {"field": col_y, "type": "quantitative"},
+                "color": {"value": color},
+            },
+        },
+    )
+
+
+def plot_bar(df, col_x, col_y):
+    color = st.color_picker("Pick a color", value="#3664E0", key="bar_color")
+    st.vega_lite_chart(
+        df,
+        {
+            "width": 500,
+            "config": {"view": {"stroke": None}},
+            "layer": [
+                {
+                    "mark": {"type": "bar", "tooltip": True},
+                    "encoding": {
+                        "x": {"field": col_x, "type": "temporal"},
+                        "y": {"field": col_y, "type": "quantitative"},
+                        "color": {"value": color},
+                    },
+                },
+                {
+                    "mark": {"type": "rule", "tooltip": True},
+                    "encoding": {
+                        "y": {
+                            "aggregate": "mean",
+                            "field": col_y,
+                            "type": "quantitative",
+                        },
+                        "color": {"value": "red"},
+                        "size": {"value": 2},
+                    },
+                },
+            ],
+        },
+    )
 
 
 def show_dataframe(df):

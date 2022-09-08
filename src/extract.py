@@ -6,7 +6,7 @@ import streamlit as st
 import yfinance as yf
 from streamlit_elements import elements
 
-from src.plots import plot_line, plot_pie
+from src.plots import plot_bar, plot_line, plot_pie
 from src.utils import simplify_numbers
 
 
@@ -44,8 +44,8 @@ def get_key_info(ticker: yf.Ticker):
     symbol = info.get("symbol")
     assets = info.get("totalAssets", "?")
     currency = info.get("currency", "USD")
-    low_52w = info.get("fiftyTwoWeekLow", 0)
-    high_52w = info.get("fiftyTwoWeekHigh", 0)
+    low_52w = info["fiftyTwoWeekLow"] or 0  # FIXME: get(key, 0) does not work
+    high_52w = info["fiftyTwoWeekHigh"] or 0
     price = info.get("regularMarketPrice")
     price_ma200 = info.get("twoHundredDayAverage")
     delta = round(price - price_ma200, 2) if price and price_ma200 else "None"
@@ -134,8 +134,7 @@ def get_historical_data(ticker: yf.Ticker):
     col_x = "Date" if interval in ["1d", "5d", "1wk", "1mo", "3mo"] else "Datetime"
 
     # Show in Streamlit
-    with elements("historical_data"):
-        plot_line(hist, col_x=col_x, col_y="Close")
+    plot_line(hist, col_x=col_x, col_y="Close")
 
 
 def get_dividends(ticker: yf.Ticker, date_format: str = "%d/%m/%Y"):
@@ -160,9 +159,10 @@ def get_dividends(ticker: yf.Ticker, date_format: str = "%d/%m/%Y"):
     )
     col2.metric("Average yearly increase [%]", f"{average_increase:.2f}")
     col3.metric("Distribution frequency", get_distribution_type(dividends))
-    col3, col4 = st.columns([70, 30])
-    col3.bar_chart(data=dividends, x="Date", y="Dividends")
-    col4.dataframe(yearly_dividends)
+    col3, col4 = st.columns([70, 28])
+    with col3:
+        plot_bar(dividends, col_x="Date", col_y="Dividends")
+    col4.dataframe(yearly_dividends.style.format("{:.2f}"))  # , width=190)
 
 
 def get_top_holdings(ticker: yf.Ticker):
