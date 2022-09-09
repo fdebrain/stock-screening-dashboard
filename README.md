@@ -1,5 +1,7 @@
 # Stock Screening Dashboard
 
+[Try the Online Demo](https://fdebrain-stock-screening-dashboard-app-a4ncj7.streamlitapp.com/)
+
 Explore ETFs and stocks using Yahoo Finance API and Streamlit.
 
 ## Requirements
@@ -24,6 +26,7 @@ Poetry
 - [x] Dividends visualization (bar plot, average yearly dividends & increase, distribution frequency, dataframe)
 - [x] Top 10 holdings (donut plot, aggregated share)
 - [ ] News
+- [ ] Real-time typing ETF recommendation
 - [ ] Additional information (total nbr of holdings, top performing holdings, correlation with S&P500, etc...)
 - [ ] Extending app to stocks (currently only ETFs)
 - [ ] Comparing two ETFs/stocks (correlation, returns, etc...)
