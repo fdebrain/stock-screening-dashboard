@@ -1,5 +1,7 @@
+import uuid
+
 import streamlit as st
-from streamlit_elements import mui, nivo
+from streamlit_elements import elements, mui, nivo
 
 CONFIG = {
     "motionConfig": "wobbly",
@@ -68,12 +70,12 @@ BAR_CONFIG = {
 
 
 PIE_CONFIG = {
-    "margin": {"top": 50, "right": 50, "bottom": 50, "left": 50},
+    "margin": {"top": 30, "right": 30, "bottom": 30, "left": 30},
     "colors": {"scheme": "nivo"},
     "activeOuterRadiusOffset": 5,
     "innerRadius": 0.5,
     "padAngle": 0.7,
-    "cornerRadius": 3,
+    "cornerRadius": 2,
     "borderWidth": 1,
     "borderColor": {"from": "color", "modifiers": [["darker", "2"]]},
     "arcLinkLabelsThickness": 2,
@@ -81,6 +83,7 @@ PIE_CONFIG = {
     "arcLinkTextColor": {"from": "color", "modifiers": [["darker", "2"]]},
     "arcLabelsSkipAngle": 10,
     "arcLinkLabelsSkipAngle": 10,
+    "arcLinkLabelsDiagonalLength": 20,
     "valueFormat": " >-2.1~f",
 }
 
@@ -91,19 +94,20 @@ LINE_CONFIG = {
 
 
 def plot_pie(df, col_cat: str, col_val: str):
-    with mui.Box(sx={"height": 400}):
-        data = list(
-            df[[col_cat, col_val]]
-            .rename(columns={col_cat: "id", col_val: "value"})
-            .to_dict(orient="index")
-            .values()
-        )
+    with elements(str(uuid.uuid4())):
+        with mui.Box(sx={"height": 400}):
+            data = list(
+                df[[col_cat, col_val]]
+                .rename(columns={col_cat: "id", col_val: "value"})
+                .to_dict(orient="index")
+                .values()
+            )
 
-        nivo.Pie(
-            data=data,
-            **CONFIG,
-            **PIE_CONFIG,
-        )
+            nivo.Pie(
+                data=data,
+                **CONFIG,
+                **PIE_CONFIG,
+            )
 
 
 def plot_line(df, col_x, col_y):
