@@ -4,7 +4,9 @@ from src.dashboard import Dashboard
 
 if __name__ == "__main__":
     st.title("📈 Stock Screening Dashboard")
-    st.caption("Explore ETFs and stocks using Yahoo Finance API and Streamlit.")
+    st.caption(
+        "Explore ETFs and stocks using Yahoo Finance, TrackInsights and Streamlit."
+    )
 
     if ticker := st.text_input("Enter ticker name or ISIN", placeholder="VOO"):
         dashboard = Dashboard(ticker)
