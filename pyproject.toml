@@ -12,7 +12,6 @@ streamlit = "^1.12.2"
 streamlit-elements = "^0.1.0"
 yfinance = "^0.1.74"
 html5lib = "^1.1"
-bs4 = "^0.0.1"
 pre-commit = "^2.20.0"
 
 [tool.poetry.dev-dependencies]
