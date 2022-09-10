@@ -1,38 +1,27 @@
 import streamlit as st
 
-from src.extract import (
-    get_data,
-    get_description,
-    get_dividends,
-    get_historical_data,
-    get_key_info,
-    get_news,
-    get_sector_weights,
-    get_top_holdings,
-)
+from src.dashboard import Dashboard
 
 if __name__ == "__main__":
     st.title("📈 Stock Screening Dashboard")
     st.caption("Explore ETFs and stocks using Yahoo Finance API and Streamlit.")
 
-    if ticker := st.text_input("Enter ticker name or ISIN"):
-        ticker = get_data(ticker)
-        get_description(ticker)
+    if ticker := st.text_input("Enter ticker name or ISIN", placeholder="VOO"):
+        dashboard = Dashboard(ticker)
 
-        st.subheader("1.Key information")
-        get_key_info(ticker)
-
-        st.subheader("2.Historical market data")
-        get_historical_data(ticker)
-
-        st.subheader("3.Sectors weights")
-        get_sector_weights(ticker)
-
-        st.subheader("4.Dividends")
-        dividends = get_dividends(ticker)
-
-        st.subheader("5.Top holdings")
-        top_holdings = get_top_holdings(ticker)
-
-        st.subheader("6.News")
-        get_news(ticker)
+        if dashboard.is_valid:
+            dashboard.show_description()
+            st.subheader("1.Key information")
+            dashboard.show_key_info()
+            st.subheader("2.Historical market data")
+            dashboard.show_historical_data()
+            st.subheader("3.Weight by sectors")
+            dashboard.show_sector_weights()
+            st.subheader("4.Weight by country")
+            dashboard.show_country_weights()
+            st.subheader("5.Dividends")
+            dashboard.show_dividends()
+            st.subheader("6.Top holdings")
+            dashboard.show_top_holdings()
+            st.subheader("7.News")
+            dashboard.show_news()

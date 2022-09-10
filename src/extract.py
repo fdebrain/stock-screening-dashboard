@@ -1,189 +1,143 @@
-from collections import ChainMap
 from datetime import datetime
 
 import pandas as pd
+import requests
 import streamlit as st
 import yfinance as yf
-from streamlit_elements import elements
-
-from src.plots import plot_bar, plot_line, plot_pie
-from src.utils import simplify_numbers
 
 
 @st.experimental_singleton
-def get_data(ticker: str) -> yf.Ticker:
-    return yf.Ticker(ticker)
+class Extractor:
+    def __init__(self, ticker: str):
+        self.data = yf.Ticker(ticker)
+        self.info = self.data.info
+        self.name = self.info.get("longName")
+        self.is_etf = self.info.get("quoteType") == "ETF"
 
+        if self.name and self.is_etf:
+            self.get_basic_info()
 
-def get_distribution_type(dividends: pd.DataFrame):
-    distributions_per_year = dividends.groupby(dividends["Date"].dt.year).size().mean()
-    if distributions_per_year > 7:
-        return "Monthly"
-    elif distributions_per_year > 3.5:
-        return "Quarterly"
-    elif distributions_per_year > 1.5:
-        return "Bi-annually"
-    else:
-        return "Annually"
+    def get_basic_info(self):
+        self.description = self.info.get("longBusinessSummary")
+        self.isin = self.data.isin
+        self.symbol = self.info.get("symbol")
+        self.assets = self.info.get("totalAssets", "?")
+        self.currency = self.info.get("currency", "USD")
+        self.low_52w = self.info.get("fiftyTwoWeekLow") or 0
+        self.high_52w = self.info.get("fiftyTwoWeekHigh") or 0
+        self.price = self.info.get("regularMarketPrice") or 0
+        self.price_ma200 = self.info.get("twoHundredDayAverage") or 0
+        self.delta = (
+            round(self.price - self.price_ma200, 2)
+            if self.price and self.price_ma200
+            else "None"
+        )
 
+        self.institutional_holders = self.data.get_institutional_holders()
+        self.fee = (
+            self.institutional_holders.set_index(0).loc["Expense Ratio (net)"].values[0]
+        )
+        self.dividend_yield = round(100 * self.info.get("yield"), 2)
+        self.holdings = requests.get(
+            f"https://data.trackinsight.com/holdings/{self.symbol}.json"
+        ).json()
 
-def get_description(ticker: yf.Ticker):
-    info = ticker.info
-    name = info.get("longName")
-    asset_type = info.get("quoteType")
-    assert name, "Could not find ticker"
-    assert asset_type == "ETF", "Only ETF assets are currently handled"
-    st.header(name)
-    description = info.get("longBusinessSummary")
-    st.text(f"ISIN: {ticker.get_isin()}")
-    st.info(f"**Description:** {description}")
+    def get_historical_data(self, period: str, interval: str) -> pd.DataFrame:
+        hist = self.data.history(period=period, interval=interval)
+        hist = hist.copy().reset_index()
+        return hist
 
+    def get_sector_weights(self) -> pd.DataFrame:
+        data = self.holdings["sectors"]
+        sectors = list(data.keys())
+        weights = [c["weight"] for c in data.values()]
+        counts = [c["count"] for c in data.values()]
+        df_sectors = pd.DataFrame(
+            {
+                "sector": sectors,
+                "share": weights,
+                "count": counts,
+            }
+        )
+        df_sectors["share"] *= 100
+        df_sectors.sort_values(by="share", inplace=True, ascending=False)
+        return df_sectors
 
-def get_key_info(ticker: yf.Ticker):
-    info = ticker.info
-    symbol = info.get("symbol")
-    assets = info.get("totalAssets", "?")
-    currency = info.get("currency", "USD")
-    low_52w = info["fiftyTwoWeekLow"] or 0  # FIXME: get(key, 0) does not work
-    high_52w = info["fiftyTwoWeekHigh"] or 0
-    price = info.get("regularMarketPrice")
-    price_ma200 = info.get("twoHundredDayAverage")
-    delta = round(price - price_ma200, 2) if price and price_ma200 else "None"
+    def get_country_weights(self):
+        data = self.holdings["countries"]
+        countries = list(data.keys())
+        weights = [c["weight"] for c in data.values()]
+        counts = [c["count"] for c in data.values()]
+        df_country = pd.DataFrame(
+            {
+                "country": countries,
+                "share": weights,
+                "count": counts,
+            }
+        )
+        df_country["share"] *= 100
+        df_country.sort_values(by="share", inplace=True, ascending=False)
+        return df_country
 
-    institutional_holders = ticker.get_institutional_holders()
-    fee = institutional_holders.set_index(0).loc["Expense Ratio (net)"].values[0]
-    # TODO: Look at dividendYield if asset is a stock
-    dividend_yield = round(100 * info.get("yield"), 2)
+    def get_dividends(self, date_format: str = "%d/%m/%Y") -> pd.DataFrame:
+        dividends = self.data.dividends.copy().reset_index().sort_values(by="Date")
+        yearly_dividends = dividends.groupby(dividends["Date"].dt.year).sum()
 
-    # Show in Streamlit
-    col1, col2, col3 = st.columns([30, 35, 35])
+        average_dividend, average_increase = 0, 0
+        if len(yearly_dividends) > 1:
+            yearly_dividends["Increase"] = 100 * (
+                yearly_dividends["Dividends"].diff()
+                / yearly_dividends["Dividends"].shift(+1)
+            )
+            average_dividend, average_increase = yearly_dividends.iloc[:-1, :].mean(
+                axis=0
+            )
 
-    col1.metric("Symbol", symbol)
-    col1.metric(
-        f"Price [{currency}]",
-        value=price,
-        delta=f"{delta} to MA200",
-        help="Price & difference w.r.t. the past 200 days average prices",
-    )
-    col2.metric("Expense ratio [%]", fee)
-    col2.metric("52w Low | High", f"{low_52w:.1f} | {high_52w:.1f}")
-    col3.metric("Yield [%]", dividend_yield)
-    col3.metric(f"Total assets [{currency}]", simplify_numbers(assets))
+        dividends["Date"] = pd.to_datetime(
+            dividends["Date"].dt.strftime(date_format),
+            infer_datetime_format=True,
+        )
 
-
-def get_sector_weights(ticker: yf.Ticker):
-    # List of dictionnaries into single dict
-    info = ticker.info
-    sector_weights = dict(ChainMap(*info["sectorWeightings"]))
-    sector_weights = dict(
-        sector=list(sector_weights.keys()),
-        share=list(sector_weights.values()),
-    )
-    df_sectors = pd.DataFrame(sector_weights)
-    df_sectors["sector"] = df_sectors["sector"].str.replace("_", " ")
-    df_sectors["sector"] = df_sectors["sector"].str.capitalize()
-    df_sectors["share"] *= 100
-    df_sectors.sort_values(by="share", inplace=True, ascending=False)
-
-    # Show in Streamlit
-    with elements("sector_weights"):
-        plot_pie(df_sectors, col_cat="sector", col_val="share")
-        # show_dataframe(df_sectors)
-
-
-def get_historical_data(ticker: yf.Ticker):
-    period = st.select_slider(
-        label="Period",
-        options=[
-            "1d",
-            "5d",
-            "1mo",
-            "3mo",
-            "6mo",
-            "ytd",
-            "1y",
-            "2y",
-            "5y",
-            "10y",
-            "max",
-        ],
-        value="10y",
-    )
-    interval = st.select_slider(
-        label="Interval",
-        options=[
-            "1m",
-            "2m",
-            "5m",
-            "15m",
-            "30m",
-            "60m",
-            "90m",
-            "1h",
-            "1d",
-            "5d",
-            "1wk",
-            "1mo",
-            "3mo",
-        ],
-        value="1d",
-    )
-
-    hist = ticker.history(period=period, interval=interval)
-    hist = hist.copy().reset_index()
-    col_x = "Date" if interval in ["1d", "5d", "1wk", "1mo", "3mo"] else "Datetime"
-
-    # Show in Streamlit
-    plot_line(hist, col_x=col_x, col_y="Close")
-
-
-def get_dividends(ticker: yf.Ticker, date_format: str = "%d/%m/%Y"):
-    currency = ticker.info.get("currency", "USD")
-    dividends = ticker.dividends.copy().reset_index().sort_values(by="Date")
-    yearly_dividends = dividends.groupby(dividends["Date"].dt.year).sum()
-    yearly_dividends["Increase"] = 100 * (
-        yearly_dividends["Dividends"].diff() / yearly_dividends["Dividends"].shift(+1)
-    )
-    dividends["Date"] = pd.to_datetime(
-        dividends["Date"].dt.strftime(date_format),
-        infer_datetime_format=True,
-    )
-    average_dividend, average_increase = yearly_dividends.iloc[:-1, :].mean(axis=0)
-
-    # Show in Streamlit
-    col1, col2, col3 = st.columns([30, 30, 30])
-    col1.metric(
-        f"Average yearly dividend [{currency}]",
-        f"{average_dividend:.2f}",
-        help="Discarding current year",
-    )
-    col2.metric("Average yearly increase [%]", f"{average_increase:.2f}")
-    col3.metric("Distribution frequency", get_distribution_type(dividends))
-    col3, col4 = st.columns([70, 28])
-    with col3:
-        plot_bar(dividends, col_x="Date", col_y="Dividends")
-    col4.dataframe(yearly_dividends.style.format("{:.2f}"))  # , width=190)
-
-
-def get_top_holdings(ticker: yf.Ticker):
-    top_holdings = pd.DataFrame(ticker.info["holdings"])
-    top_holdings["holdingPercent"] *= 100
-    top_holdings_share = top_holdings["holdingPercent"].sum()
-
-    # Show in Streamlit
-    with elements("top_holdings"):
-        st.metric("Top 10 holdings share", f"{top_holdings_share:.2f} %")
-        plot_pie(top_holdings, col_cat="holdingName", col_val="holdingPercent")
-
-
-def get_news(ticker, date_format="%d/%m/%Y  %H:%M:%S"):
-    news = [
-        {
-            "Time": datetime.fromtimestamp(news["providerPublishTime"]).strftime(
-                date_format
-            ),
-            "Title": news["title"],
+        distribution_type = self.get_distribution_type(dividends)
+        return {
+            "dividends": dividends,
+            "yearly_dividends": yearly_dividends,
+            "average_dividend": average_dividend,
+            "average_increase": average_increase,
+            "distribution_type": distribution_type,
         }
-        for news in ticker.get_news()
-    ]
-    st.dataframe(news)
+
+    def get_top_holdings(self):
+        data = self.holdings["topHoldings"]
+        n_holdings = self.holdings["count"]
+        companies = [c["label"] for c in data]
+        weights = [c["weight"] for c in data]
+        df_top_holdings = pd.DataFrame({"company": companies, "share": weights})
+        df_top_holdings["share"] *= 100
+        top_holdings_share = df_top_holdings["share"].sum()
+        return df_top_holdings, top_holdings_share, n_holdings
+
+    def get_news(self, date_format="%d/%m/%Y  %H:%M:%S"):
+        news = [
+            {
+                "Time": datetime.fromtimestamp(news["providerPublishTime"]).strftime(
+                    date_format
+                ),
+                "Title": news["title"],
+            }
+            for news in self.data.get_news()
+        ]
+        return news
+
+    def get_distribution_type(self, dividends: pd.DataFrame):
+        distributions_per_year = (
+            dividends.groupby(dividends["Date"].dt.year).size().mean()
+        )
+        if distributions_per_year > 7:
+            return "Monthly"
+        elif distributions_per_year > 3.5:
+            return "Quarterly"
+        elif distributions_per_year > 1.5:
+            return "Bi-annually"
+        else:
+            return "Annually"
