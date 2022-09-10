@@ -27,6 +27,7 @@ class Extractor:
         ).json()
         self.name = self.funds["label"]
         self.description = self.funds["description"]
+        self.exposure = self.funds["exposureDescription"]
         self.assets = self.info.get("totalAssets", "?")
         self.currency = self.info.get("currency", "?")
         self.low_52w = self.info.get("fiftyTwoWeekLow") or 0

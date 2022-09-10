@@ -53,6 +53,7 @@ class Dashboard:
         st.header(self.data_source.name)
         st.text(f"ISIN: {self.data_source.isin}")
         st.info(f"**Description:** {self.data_source.description}")
+        st.success(f"**Exposure:** {self.data_source.exposure}")
 
     def show_key_info(self):
         col1, col2, col3 = st.columns([30, 35, 35])
