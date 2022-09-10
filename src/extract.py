@@ -11,18 +11,24 @@ class Extractor:
     def __init__(self, ticker: str):
         self.data = yf.Ticker(ticker)
         self.info = self.data.info
-        self.name = self.info.get("longName")
         self.is_etf = self.info.get("quoteType") == "ETF"
 
-        if self.name and self.is_etf:
+        if self.info.get("longName") and self.is_etf:
             self.get_basic_info()
 
     def get_basic_info(self):
-        self.description = self.info.get("longBusinessSummary")
         self.isin = self.data.isin
         self.symbol = self.info.get("symbol")
+        self.holdings = requests.get(
+            f"https://data.trackinsight.com/holdings/{self.symbol}.json"
+        ).json()
+        self.funds = requests.get(
+            f"https://data.trackinsight.com/funds/{self.symbol}.json"
+        ).json()
+        self.name = self.funds["label"]
+        self.description = self.funds["description"]
         self.assets = self.info.get("totalAssets", "?")
-        self.currency = self.info.get("currency", "USD")
+        self.currency = self.info.get("currency", "?")
         self.low_52w = self.info.get("fiftyTwoWeekLow") or 0
         self.high_52w = self.info.get("fiftyTwoWeekHigh") or 0
         self.price = self.info.get("regularMarketPrice") or 0
@@ -38,9 +44,6 @@ class Extractor:
             self.institutional_holders.set_index(0).loc["Expense Ratio (net)"].values[0]
         )
         self.dividend_yield = round(100 * self.info.get("yield"), 2)
-        self.holdings = requests.get(
-            f"https://data.trackinsight.com/holdings/{self.symbol}.json"
-        ).json()
 
     def get_historical_data(self, period: str, interval: str) -> pd.DataFrame:
         hist = self.data.history(period=period, interval=interval)
