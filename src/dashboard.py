@@ -158,3 +158,13 @@ class Dashboard:
     def show_news(self):
         news = self.data_source.get_news()
         st.dataframe(news)
+
+    @handle_exception
+    def show_trackinsight_page(self):
+        import streamlit.components.v1 as components
+
+        components.iframe(
+            f"https://www.trackinsight.com/en/fund/{self.data_source.symbol}",
+            scrolling=True,
+            height=600,
+        )

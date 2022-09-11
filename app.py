@@ -27,3 +27,5 @@ if __name__ == "__main__":
             dashboard.show_top_holdings()
             st.subheader("7.News")
             dashboard.show_news()
+            st.subheader("8.TrackInsight")
+            dashboard.show_trackinsight_page()
