@@ -1,6 +1,10 @@
 def simplify_numbers(number):
+    if number is None:
+        return "?"
+
     string = str(number)
     n = len(string)
+
     pos2letter = [("9", "B"), ("6", "M"), ("3", "K")]
     for pos, letter in pos2letter:
         if n > int(pos):

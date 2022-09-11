@@ -5,86 +5,108 @@ import requests
 import streamlit as st
 import yfinance as yf
 
+UNKNOWN = "?"
+
 
 @st.experimental_singleton
 class Extractor:
     def __init__(self, ticker: str):
         self.data = yf.Ticker(ticker)
         self.info = self.data.info
-        self.is_etf = self.info.get("quoteType") == "ETF"
+        self.symbol = self.info.get("symbol") or ticker  # TODO: Alternative source
 
-        if self.info.get("longName") and self.is_etf:
+        try:
             self.get_basic_info()
+        except Exception as e:
+            st.text(e)
 
-    def get_basic_info(self):
-        self.isin = self.data.isin
-        self.symbol = self.info.get("symbol")
+        try:
+            self.get_trackinsights_info()
+        except Exception as e:
+            st.text(e)
+
+        if not self.name:
+            raise ValueError(f"Could not find ticker {ticker}.")
+
+        if not self.is_etf:
+            raise ValueError("Only ETF assets are currently handled.")
+
+    def get_trackinsights_info(self):
         self.holdings = requests.get(
             f"https://data.trackinsight.com/holdings/{self.symbol}.json"
         ).json()
         self.funds = requests.get(
             f"https://data.trackinsight.com/funds/{self.symbol}.json"
         ).json()
-        self.name = self.funds["label"]
+        self.daily = requests.get(
+            f"https://data.trackinsight.com/funds/{self.symbol}/daily.json"
+        ).json()
+
+        self.name = self.funds.get("label")
         self.description = self.funds["description"]
         self.exposure = self.funds["exposureDescription"]
-        self.assets = self.info.get("totalAssets", "?")
-        self.currency = self.info.get("currency", "?")
-        self.low_52w = self.info.get("fiftyTwoWeekLow") or 0
-        self.high_52w = self.info.get("fiftyTwoWeekHigh") or 0
-        self.price = self.info.get("regularMarketPrice") or 0
-        self.price_ma200 = self.info.get("twoHundredDayAverage") or 0
-        self.delta = (
-            round(self.price - self.price_ma200, 2)
-            if self.price and self.price_ma200
-            else "None"
-        )
+        self.esg_grade = self.daily["esgGrade"]
 
-        self.institutional_holders = self.data.get_institutional_holders()
-        self.fee = (
-            self.institutional_holders.set_index(0).loc["Expense Ratio (net)"].values[0]
-        )
-        self.dividend_yield = round(100 * self.info.get("yield"), 2)
+        # Alternative source
+        if not self.is_etf:
+            self.is_etf = self.funds["product_type"] == "ETF" or False
+        if not self.isin:
+            self.isin = self.funds["isin"] or UNKNOWN
+        if not self.currency:
+            self.currency = self.funds["baseCurrency"] or UNKNOWN
+        if not self.fee or self.fee == "0.00":
+            self.fee = 100 * self.funds.get("expenseRatio", 0) or UNKNOWN
+        if not self.price:
+            self.price = self.daily["snap"]["nav"]
+
+    def get_basic_info(self):
+        self.name = self.info.get("longName")
+        self.description = self.info.get("longBusinessSummary")
+        self.exposure = UNKNOWN
+        self.is_etf = self.info.get("quoteType") == "ETF"
+        self.isin = self.data.isin.replace("-", "")
+        self.assets = self.info.get("totalAssets")
+        self.currency = self.info.get("currency")
+        self.low_52w = self.info.get("fiftyTwoWeekLow")
+        self.high_52w = self.info.get("fiftyTwoWeekHigh")
+        self.price = self.info.get("regularMarketPrice")
+        self.ma200 = self.info.get("twoHundredDayAverage")
+        self.delta = self.price - self.ma200 if self.price and self.ma200 else None
+
+        self.institutional_holders = self.data.get_institutional_holders(as_dict=True)
+        self.fee = None
+        if self.institutional_holders:
+            self.institutional_holders = {
+                k: v
+                for k, v in zip(
+                    self.institutional_holders[0].values(),
+                    self.institutional_holders[1].values(),
+                )
+            }
+            self.fee = self.institutional_holders["Expense Ratio (net)"].replace("%", "")
+        self.dividend_yield = 100 * self.info.get("yield", 0)
 
     def get_historical_data(self, period: str, interval: str) -> pd.DataFrame:
-        hist = self.data.history(period=period, interval=interval)
-        hist = hist.copy().reset_index()
-        return hist
+        return self.data.history(period=period, interval=interval)  # .reset_index()
+
+    def get_weights(self, field):
+        data = self.holdings[field]
+        names = list(data.keys())
+        weights = [c["weight"] for c in data.values()]
+        counts = [c["count"] for c in data.values()]
+        df = pd.DataFrame({field: names, "share": weights, "count": counts})
+        df["share"] *= 100
+        df.sort_values(by="share", inplace=True, ascending=False)
+        return df
 
     def get_sector_weights(self) -> pd.DataFrame:
-        data = self.holdings["sectors"]
-        sectors = list(data.keys())
-        weights = [c["weight"] for c in data.values()]
-        counts = [c["count"] for c in data.values()]
-        df_sectors = pd.DataFrame(
-            {
-                "sector": sectors,
-                "share": weights,
-                "count": counts,
-            }
-        )
-        df_sectors["share"] *= 100
-        df_sectors.sort_values(by="share", inplace=True, ascending=False)
-        return df_sectors
+        return self.get_weights("sectors")
 
     def get_country_weights(self):
-        data = self.holdings["countries"]
-        countries = list(data.keys())
-        weights = [c["weight"] for c in data.values()]
-        counts = [c["count"] for c in data.values()]
-        df_country = pd.DataFrame(
-            {
-                "country": countries,
-                "share": weights,
-                "count": counts,
-            }
-        )
-        df_country["share"] *= 100
-        df_country.sort_values(by="share", inplace=True, ascending=False)
-        return df_country
+        return self.get_weights("countries")
 
     def get_dividends(self, date_format: str = "%d/%m/%Y") -> pd.DataFrame:
-        dividends = self.data.dividends.copy().reset_index().sort_values(by="Date")
+        dividends = self.data.dividends.reset_index().sort_values(by="Date")
         yearly_dividends = dividends.groupby(dividends["Date"].dt.year).sum()
 
         average_dividend, average_increase = 0, 0
