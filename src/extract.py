@@ -8,11 +8,16 @@ import yfinance as yf
 UNKNOWN = "?"
 
 
-@st.experimental_singleton
+@st.cache(allow_output_mutation=True)
+def get_yahoo_finance_info(ticker: str):
+    return yf.Ticker(ticker)
+
+
+# @st.experimental_singleton
 class Extractor:
     def __init__(self, ticker: str):
-        self.data = yf.Ticker(ticker)
-        self.info = self.data.info
+        self.data = get_yahoo_finance_info(ticker)
+        self.info = self.data.info.copy()
         self.symbol = self.info.get("symbol") or ticker  # TODO: Alternative source
 
         try:
