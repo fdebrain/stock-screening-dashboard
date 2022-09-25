@@ -24,10 +24,10 @@ Poetry
 - [x] Historical market data visualization (line plot, period & interval sliders)
 - [x] Sectors weights visualization (donut plot)
 - [x] Dividends visualization (bar plot, average yearly dividends & increase, distribution frequency, dataframe)
-- [x] Top 10 holdings (donut plot, aggregated share)
+- [x] Top 15 holdings (donut plot, aggregated share)
 - [ ] News
 - [ ] Real-time typing ETF recommendation
-- [ ] Additional information (total nbr of holdings, top performing holdings, correlation with S&P500, etc...)
+- [ ] Additional information (~~total nbr of holdings~~, ~~weight by country~~, top performing holdings, etc...)
 - [ ] Extending app to stocks (currently only ETFs)
 - [ ] Comparing two ETFs/stocks (correlation, returns, etc...)
 - [ ] More to come...

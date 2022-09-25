@@ -151,7 +151,7 @@ class Dashboard:
         top_holdings, top_holdings_share, n_holdings = self.data_source.get_top_holdings()
         col1, col2, _ = st.columns([30, 30, 40])
         col1.metric("Total holdings", n_holdings)
-        col2.metric("Top 10 holdings share", f"{top_holdings_share:.2f} %")
+        col2.metric("Top 15 holdings share", f"{top_holdings_share:.2f} %")
         plot_pie(top_holdings, col_cat="company", col_val="share")
 
     @handle_exception
