@@ -110,6 +110,11 @@ class Dashboard:
         interval = st.select_slider(label="Interval", options=INTERVALS, value="1d")
         hist = self.data_source.get_historical_data(period, interval).reset_index()
         assert len(hist) > 0, "No historical data found"
+        price_begin = hist["Close"].head(1).values[0]
+        price_end = hist["Close"].tail(1).values[0]
+        delta = (price_end - price_begin) / price_begin
+        col1, _, _ = st.columns([30, 35, 35])
+        col1.metric("Performance [%]", f"{(100 * delta):.1f}")
         col_x = "Date" if interval in ["1d", "5d", "1wk", "1mo", "3mo"] else "Datetime"
         plot_line(hist, col_x=col_x, col_y="Close")
 
@@ -117,11 +122,15 @@ class Dashboard:
     def show_sector_weights(self):
         sector_weights = self.data_source.get_sector_weights()
         plot_pie(sector_weights, col_cat="sectors", col_val="share")
+        with st.expander("Show table"):
+            st.dataframe(sector_weights)
 
     @handle_exception
     def show_country_weights(self):
         country_weights = self.data_source.get_country_weights()
         plot_pie(country_weights, col_cat="countries", col_val="share")
+        with st.expander("Show table"):
+            st.dataframe(country_weights)
 
     @handle_exception
     def show_dividends(self):
@@ -137,14 +146,13 @@ class Dashboard:
         col1.metric(
             f"Average yearly dividend [{self.data_source.currency}]",
             show_float(average_dividend, 2),
-            help="Discarding current year",
+            help="Discards current year",
         )
         col2.metric("Average yearly increase [%]", show_float(average_increase, 2))
         col3.metric("Distribution frequency", distribution_type)
-        col3, col4 = st.columns([70, 28])
-        with col3:
-            plot_bar(dividends, col_x="Date", col_y="Dividends")
-        col4.dataframe(yearly_dividends.style.format("{:.2f}"))
+        plot_bar(dividends, col_x="Date", col_y="Dividends")
+        with st.expander("Show table"):
+            st.dataframe(yearly_dividends.style.format("{:.2f}"))
 
     @handle_exception
     def show_top_holdings(self):
@@ -153,6 +161,8 @@ class Dashboard:
         col1.metric("Total holdings", n_holdings)
         col2.metric("Top 15 holdings share", f"{top_holdings_share:.2f} %")
         plot_pie(top_holdings, col_cat="company", col_val="share")
+        with st.expander("Show table"):
+            st.dataframe(top_holdings)
 
     @handle_exception
     def show_news(self):
