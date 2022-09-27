@@ -39,3 +39,28 @@ if __name__ == "__main__":
                 st.markdown("[6. Top holdings](#6)")
                 st.markdown("[7. News](#7)")
                 st.markdown("[8. Trackinsights](#8)")
+
+                style = """<style>
+                [data-testid="stSidebar"][aria-expanded="true"] > div:first-child {
+                    background-color: white;
+                }
+
+                [data-testid="stSidebar"][aria-expanded="false"] > div:first-child {
+                    background-color: white;
+                }
+
+                div[data-testid="stMarkdownContainer"] > p > a {
+                    text-decoration: none;
+                }
+
+                div[data-testid="stMarkdownContainer"] > p > a:hover {
+                    color: green;
+                }
+
+                a[href^="#"] + span {
+                    content: '';
+                    display: 'block';
+                    margin-top: 35px;
+                }
+                </style>"""
+                st.markdown(style, unsafe_allow_html=True)
