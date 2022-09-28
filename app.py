@@ -40,27 +40,6 @@ if __name__ == "__main__":
                 st.markdown("[7. News](#7)")
                 st.markdown("[8. Trackinsights](#8)")
 
-                style = """<style>
-                [data-testid="stSidebar"][aria-expanded="true"] > div:first-child {
-                    background-color: white;
-                }
-
-                [data-testid="stSidebar"][aria-expanded="false"] > div:first-child {
-                    background-color: white;
-                }
-
-                div[data-testid="stMarkdownContainer"] > p > a {
-                    text-decoration: none;
-                }
-
-                div[data-testid="stMarkdownContainer"] > p > a:hover {
-                    color: green;
-                }
-
-                a[href^="#"] + span {
-                    content: '';
-                    display: 'block';
-                    margin-top: 35px;
-                }
-                </style>"""
+                with open("style.css") as f:
+                    style = f"<style>{f.read()}</style>"
                 st.markdown(style, unsafe_allow_html=True)
