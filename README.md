@@ -18,6 +18,14 @@ Poetry
 
 **Run Streamlit app:** `make run` (localhost:8501)
 
+## Check code quality
+
+We use Black, Flake8 and isort to ensure standard coding practices.
+
+Each commit and pull request triggers a CI (Continuous Integration) pipeline job that runs code quality checks remotely (see Github Actions).
+
+**(Optional) Run linters locally:** `pre-commit run -a`
+
 ## Features
 
 - [x] Key information (expense ratio, price, 52 weeks low/high, total assets, yield)
@@ -31,3 +39,6 @@ Poetry
 - [ ] Extending app to stocks (currently only ETFs)
 - [ ] Comparing two ETFs/stocks (correlation, returns, etc...)
 - [ ] More to come...
+
+## Contributing
+To learn more about making a contribution to this repository, please see our [Contributing guide](https://github.com/fdebrain/stock-screening-dashboard/blob/master/CONTRIBUTING.md).
