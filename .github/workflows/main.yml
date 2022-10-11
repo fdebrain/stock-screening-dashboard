@@ -2,17 +2,8 @@
 
 name: CI
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
+  - push
 
 jobs:
    run-linters:
@@ -26,8 +17,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install flake8 black==22.8.0 isort
       - name: Black
-        run: black .
+        uses: psf/black@stable
+        with:
+          options: "--check --verbose --line-length=90 --diff"
+          version: "~= 22.0"
+      - name: Flake8 annotations
+        uses: rbialon/flake8-annotations@v1
       - name: Flake8
-        run: flake8 --max-line-length=90 .
+        run: flake8 --count --show-source --statistics --max-line-length=90 .
       - name: isort
-        run: isort --profile=black --line-length=90 .
+        uses: isort/isort-action@v1.0.0
+        with:
+          configuration: --profile=black --line-length=90 --check-only --diff
