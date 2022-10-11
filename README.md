@@ -1,6 +1,6 @@
 # Stock Screening Dashboard
 
-[Try the Online Demo](https://fdebrain-stock-screening-dashboard-app-a4ncj7.streamlitapp.com/)
+[Try the Online Demo](https://fdebrain-stock-screening-dashboard-app-4lotyu.streamlitapp.com/)
 
 Explore ETFs and stocks using Yahoo Finance API and Streamlit.
 
