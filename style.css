@@ -1,21 +1,21 @@
 [data-testid="stSidebar"][aria-expanded="true"] > div:first-child {
-    background-color: white;
+  background-color: white;
 }
 
 [data-testid="stSidebar"][aria-expanded="false"] > div:first-child {
-    background-color: white;
+  background-color: white;
 }
 
 div[data-testid="stMarkdownContainer"] > p > a {
-    text-decoration: none;
+  text-decoration: none;
 }
 
 div[data-testid="stMarkdownContainer"] > p > a:hover {
-    color: green;
+  color: green;
 }
 
 a[href^="#"] + span {
-    content: '';
-    display: 'block';
-    margin-top: 35px;
+  content: "";
+  display: "block";
+  margin-top: 35px;
 }
